@@ -12,9 +12,9 @@ class TileEntity {
   int _column;
   AnimationState animationState = .normal;
 
-  int get row => _delegate?._row ?? _row;
+  int get row => _delegate?.row ?? _row;
 
-  int get column => _delegate?._column ?? _column;
+  int get column => _delegate?.column ?? _column;
 
   TileEntity(this.value, this._row, this._column) : id = const Uuid().v4();
 
