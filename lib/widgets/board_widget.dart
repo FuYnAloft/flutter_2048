@@ -33,6 +33,7 @@ class BoardWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Stack(
+            clipBehavior: .none,
             children: [
               // 底层：空格子背景
               _buildEmptyGrid(gameTheme, tileSize),
@@ -72,6 +73,7 @@ class BoardWidget extends StatelessWidget {
     return Consumer<BoardProvider>(
       builder: (context, provider, child) {
         return Stack(
+          clipBehavior: .none,
           children: [
             for (final tile in provider.stackSorted)
               TileWidget(

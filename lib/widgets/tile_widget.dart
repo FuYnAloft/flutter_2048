@@ -11,13 +11,13 @@ class TileWidget extends StatelessWidget {
   final double spacing;
 
   /// 移动动画时长
-  static const Duration moveDuration = Duration(milliseconds: 200);
+  static const Duration moveDuration = Duration(milliseconds: 150);
 
   /// 合并动画时长
   static const Duration mergeDuration = Duration(milliseconds: 100);
 
   /// 总动画时长 = 移动 + 合并
-  static const Duration totalDuration = Duration(milliseconds: 300);
+  static const Duration totalDuration = Duration(milliseconds: 250);
 
   const TileWidget({
     super.key,
@@ -31,22 +31,29 @@ class TileWidget extends StatelessWidget {
     final gameTheme = Theme.of(context).extension<GameTheme>()!;
     final displayValue = pow(2, tile.value).toInt();
 
-    // 计算位置
-    final left = tile.column * (tileSize + spacing) + spacing;
-    final top = tile.row * (tileSize + spacing) + spacing;
+    // 借助 Offset 的 lerp 方法补间，乘大数以增强动画效果
+    final position = Offset(tile.column.toDouble(), tile.row.toDouble());
 
-    return AnimatedPositioned(
+    return TweenAnimationBuilder(
+      tween: Tween<Offset>(begin: position, end: position),
       duration: moveDuration,
-      curve: Curves.easeInOut,
-      left: left,
-      top: top,
-      width: tileSize,
-      height: tileSize,
-      child: _AnimatedTileContent(
-        tile: tile,
-        displayValue: displayValue,
-        gameTheme: gameTheme,
-      ),
+      curve: Curves.easeOutBack,
+      builder: (_, value, _) {
+        final left = value.dx * (tileSize + spacing) + spacing;
+        final top = value.dy * (tileSize + spacing) + spacing;
+
+        return Positioned(
+          left: left,
+          top: top,
+          width: tileSize,
+          height: tileSize,
+          child: _AnimatedTileContent(
+            tile: tile,
+            displayValue: displayValue,
+            gameTheme: gameTheme,
+          ),
+        );
+      },
     );
   }
 }
@@ -85,7 +92,7 @@ class _AnimatedTileContent extends StatelessWidget {
       curve: Curves.linear,
       tween: Tween<double>(
         begin: -2.0,
-        end: tile.animationState == .normal ? 1.0 : 0.95, // 合并后放小一点，以免侧边溢出
+        end: tile.animationState == .normal ? 1.0 : 0.98, // 合并后放小一点，以免侧边溢出
       ),
       builder: (context, value, child) {
         // 将value clamp到0~1范围
