@@ -151,13 +151,15 @@ class _GameBoardState extends State<_GameBoard> {
           children: [
             const BoardWidget(),
             // 游戏结束遮罩
-            Consumer<BoardProvider>(
-              builder: (context, provider, child) {
-                if (provider.isGameOver) {
-                  return _GameOverOverlay();
-                }
-                return const SizedBox.shrink();
-              },
+            Positioned.fill(
+              child: Consumer<BoardProvider>(
+                builder: (context, provider, child) {
+                  if (provider.isGameOver) {
+                    return _GameOverOverlay();
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
           ],
         ),

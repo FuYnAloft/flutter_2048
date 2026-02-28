@@ -44,7 +44,6 @@ class BoardProvider extends ChangeNotifier {
   }
 
   void _addAllToBuffer(Iterable<TileEntity> tiles) {
-    print([for (final tile in _buffer) tile.animationState]);
     final it = tiles.iterator;
     while (_buffer.length <= bufferSize) {
       if (!it.moveNext()) return;
@@ -88,10 +87,8 @@ class BoardProvider extends ChangeNotifier {
   }
 
   void moveRight() {
-    print('move invoked');
     final newTiles = board.moveRight();
     if (newTiles == null) return;
-    print(board);
     lastMove = (axis: 0, direction: 1);
     _addScore(newTiles);
     _addAllToBuffer(newTiles);
@@ -99,10 +96,8 @@ class BoardProvider extends ChangeNotifier {
   }
 
   void moveLeft() {
-    print('move invoked');
     final newTiles = board.moveLeft();
     if (newTiles == null) return;
-    print(board);
     lastMove = (axis: 0, direction: -1);
     _addScore(newTiles);
     _addAllToBuffer(newTiles);
@@ -110,10 +105,8 @@ class BoardProvider extends ChangeNotifier {
   }
 
   void moveUp() {
-    print('move invoked');
     final newTiles = board.moveUp();
     if (newTiles == null) return;
-    print(board);
     lastMove = (axis: 1, direction: -1);
     _addScore(newTiles);
     _addAllToBuffer(newTiles);
@@ -121,10 +114,8 @@ class BoardProvider extends ChangeNotifier {
   }
 
   void moveDown() {
-    print('move invoked');
     final newTiles = board.moveDown();
     if (newTiles == null) return;
-    print(board);
     lastMove = (axis: 1, direction: 1);
     _addScore(newTiles);
     _addAllToBuffer(newTiles);
