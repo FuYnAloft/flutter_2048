@@ -137,28 +137,11 @@ class _GameBoard extends StatefulWidget {
 }
 
 class _GameBoardState extends State<_GameBoard> {
-  final FocusNode _focusNode = FocusNode();
   Offset? _dragStart;
 
   @override
-  void initState() {
-    super.initState();
-    // 自动获取焦点以接收键盘事件
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
-    });
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return KeyboardListener(
-      focusNode: _focusNode,
+    return Focus(
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: GestureDetector(
@@ -182,23 +165,24 @@ class _GameBoardState extends State<_GameBoard> {
     );
   }
 
-  void _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return .ignored;
 
     final provider = context.read<BoardProvider>();
 
     switch (event.logicalKey) {
-      case LogicalKeyboardKey.arrowRight:
+      case .arrowRight || .keyD:
         provider.moveRight();
-      case LogicalKeyboardKey.arrowLeft:
+      case .arrowLeft || .keyA:
         provider.moveLeft();
-      case LogicalKeyboardKey.arrowUp:
+      case .arrowUp || .keyW:
         provider.moveUp();
-      case LogicalKeyboardKey.arrowDown:
+      case .arrowDown || .keyS:
         provider.moveDown();
       default:
-        break;
+        return .ignored;
     }
+    return .handled;
   }
 
   void _handlePanEnd(DragEndDetails details) {
