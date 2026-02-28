@@ -52,7 +52,7 @@ class TileWidget extends StatelessWidget {
 }
 
 /// 方块内容，处理合并动画（缩放效果）
-class _AnimatedTileContent extends StatefulWidget {
+class _AnimatedTileContent extends StatelessWidget {
   final TileEntity tile;
   final int displayValue;
   final GameTheme gameTheme;
@@ -64,64 +64,33 @@ class _AnimatedTileContent extends StatefulWidget {
   });
 
   @override
-  State<_AnimatedTileContent> createState() => _AnimatedTileContentState();
-}
-
-class _AnimatedTileContentState extends State<_AnimatedTileContent>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: TileWidget.totalDuration,
-      vsync: this,
-    );
-
-    // 合并的方块：前200ms保持大小0，200~300ms从0变到1
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: ConstantTween<double>(0.0), weight: 200),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 100,
-      ),
-    ]).animate(_controller);
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final backgroundColor = widget.gameTheme.getTileColor(widget.tile.value);
-    final textColor = widget.gameTheme.getTileTextColor(widget.tile.value);
+    final backgroundColor = gameTheme.getTileColor(tile.value);
+    final textColor = gameTheme.getTileTextColor(tile.value);
 
     // 根据数值大小调整字体大小
     double fontSize;
-    if (widget.displayValue < 100) {
+    if (displayValue < 100) {
       fontSize = 40;
-    } else if (widget.displayValue < 1000) {
+    } else if (displayValue < 1000) {
       fontSize = 32;
-    } else if (widget.displayValue < 10000) {
+    } else if (displayValue < 10000) {
       fontSize = 24;
     } else {
       fontSize = 18;
     }
 
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(scale: _scaleAnimation.value, child: child);
+    return TweenAnimationBuilder<double>(
+      duration: TileWidget.totalDuration,
+      curve: Curves.linear,
+      tween: Tween<double>(
+        begin: -2.0,
+        end: tile.animationState == .normal ? 1.0 : 0.95, // 合并后放小一点，以免侧边溢出
+      ),
+      builder: (context, value, child) {
+        // 将value clamp到0~1范围
+        final scale = value.clamp(0.0, 1.0);
+        return Transform.scale(scale: scale, child: child);
       },
       child: Container(
         decoration: BoxDecoration(
@@ -130,7 +99,7 @@ class _AnimatedTileContentState extends State<_AnimatedTileContent>
         ),
         child: Center(
           child: Text(
-            widget.displayValue.toString(),
+            displayValue.toString(),
             style: TextStyle(
               color: textColor,
               fontSize: fontSize,
