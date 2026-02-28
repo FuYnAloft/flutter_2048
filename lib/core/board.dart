@@ -247,4 +247,21 @@ class Board {
     }
     return count;
   }
+
+  @override
+  String toString() {
+    final buffer = StringBuffer();
+    for (int i = 0; i < size; i++) {
+      for (int j = 0; j < size; j++) {
+        buffer.write(
+          tiles[i][j]?.value != null
+              ? pow(2, tiles[i][j]!.value).toString().padLeft(4)
+              : '   .',
+        );
+        if (j < size - 1) buffer.write(' ');
+      }
+      buffer.writeln();
+    }
+    return buffer.toString();
+  }
 }

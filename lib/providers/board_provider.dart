@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:circular_buffer/circular_buffer.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_2048/core/board.dart';
@@ -9,12 +8,13 @@ import 'package:flutter_2048/models/tile_entity.dart';
 /// 为动画提供完整的状态管理，持有一个循环缓冲区，用于存储 "可见" 的方块实体
 class BoardProvider extends ChangeNotifier {
   final Board board;
+  final int bufferSize;
 
-  /// 一个循环缓冲区，用于存储 "可见" 的方块实体
-  final CircularBuffer<TileEntity> _buffer;
+  /// 一个缓冲区，用于存储 "可见" 的方块实体，应当消失的块应该在左边
+  final List<TileEntity> _buffer;
 
   /// 缓冲区中的方块实体按渲染顺序排序后的结果，对应 Stack 中的顺序
-  Iterable<TileEntity> stackSorted;
+  Iterable<TileEntity> get stackSorted => _buffer.toList(); // 现在仅仅是转发
 
   /// 记录上一次移动的方向和轴，用于动画的方向判断
   /// [axis] - 0: 横向移动, 1: 纵向移动
@@ -23,10 +23,12 @@ class BoardProvider extends ChangeNotifier {
 
   /// 当前分数
   int _score = 0;
+
   int get score => _score;
 
   /// 最高分
   int _bestScore = 0;
+
   int get bestScore => _bestScore;
 
   /// 游戏是否结束
@@ -35,28 +37,40 @@ class BoardProvider extends ChangeNotifier {
   /// 是否已经达成2048
   bool get hasWon => board.hasWon();
 
-  BoardProvider(this.board, {int bufferSize = 32})
-    : _buffer = CircularBuffer(bufferSize),
-      stackSorted = [] {
+  BoardProvider(this.board, {this.bufferSize = 64}) : _buffer = [] {
     // 初始化棋盘并将初始方块添加到缓冲区
     final initialTiles = board.init();
-    initialTiles.forEach(_buffer.add);
-    stackSorted = initialTiles;
+    _addAllToBuffer(initialTiles);
+  }
+
+  void _addAllToBuffer(Iterable<TileEntity> tiles) {
+    print([for (final tile in _buffer) tile.animationState]);
+    final it = tiles.iterator;
+    while (_buffer.length <= bufferSize) {
+      if (!it.moveNext()) return;
+      _buffer.add(it.current);
+    }
+    for (int i = 0; i < bufferSize; i++) {
+      if (!it.moveNext()) return;
+      _buffer[i] = it.current;
+    }
+  }
+
+  void _sortBuffer() {
+    // 更新 _buffer，使其反映方块实体的渲染顺序
+    // 正常的块应该放到上面；横向移动时根据列排序，纵向移动时根据行排序；最后value越小放列表左边，方便覆盖
+    _buffer.sortBy((tile) {
+      final stateFactor = tile.animationState == AnimationState.normal ? 1 : 0;
+      final positionFactor = lastMove.axis == 0
+          ? lastMove.direction * tile.column
+          : lastMove.direction * tile.row;
+      return 10000 * stateFactor + 100 * positionFactor + tile.value;
+    });
   }
 
   @override
   void notifyListeners() {
-    // 更新 stackOrder，使其反映当前缓冲区中的方块实体的渲染顺序
-    // 正常的块应该放到上面，横向移动时根据列排序，纵向移动时根据行排序
-    stackSorted = _buffer.sortedBy((tile) {
-      final stateFactor = tile.animationState == AnimationState.normal
-          ? 100
-          : 0;
-      final positionFactor = lastMove.axis == 0
-          ? lastMove.direction * tile.column
-          : lastMove.direction * tile.row;
-      return stateFactor + positionFactor;
-    });
+    _sortBuffer();
     super.notifyListeners();
   }
 
@@ -80,7 +94,7 @@ class BoardProvider extends ChangeNotifier {
     print(board);
     lastMove = (axis: 0, direction: 1);
     _addScore(newTiles);
-    newTiles.forEach(_buffer.add);
+    _addAllToBuffer(newTiles);
     notifyListeners();
   }
 
@@ -91,7 +105,7 @@ class BoardProvider extends ChangeNotifier {
     print(board);
     lastMove = (axis: 0, direction: -1);
     _addScore(newTiles);
-    newTiles.forEach(_buffer.add);
+    _addAllToBuffer(newTiles);
     notifyListeners();
   }
 
@@ -102,7 +116,7 @@ class BoardProvider extends ChangeNotifier {
     print(board);
     lastMove = (axis: 1, direction: -1);
     _addScore(newTiles);
-    newTiles.forEach(_buffer.add);
+    _addAllToBuffer(newTiles);
     notifyListeners();
   }
 
@@ -113,7 +127,7 @@ class BoardProvider extends ChangeNotifier {
     print(board);
     lastMove = (axis: 1, direction: 1);
     _addScore(newTiles);
-    newTiles.forEach(_buffer.add);
+    _addAllToBuffer(newTiles);
     notifyListeners();
   }
 
@@ -121,7 +135,7 @@ class BoardProvider extends ChangeNotifier {
     _score = 0;
     final newTiles = board.reset();
     _buffer.clear();
-    newTiles.forEach(_buffer.add);
+    _addAllToBuffer(newTiles);
     notifyListeners();
   }
 }
