@@ -32,44 +32,6 @@ class GamePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // 标题
-          const Text(
-            '2048',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF776E65),
-            ),
-          ),
-          // 重新开始按钮
-          ElevatedButton(
-            onPressed: () {
-              context.read<BoardProvider>().reset();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8F7A66),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              '新游戏',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildScoreBoard(BuildContext context) {
     return Row(
       spacing: 8.0,
