@@ -1,0 +1,130 @@
+name: Full Platform Build
+
+on:
+  - workflow_dispatch
+
+jobs:
+  build:
+    name: ${{ matrix.platform }} Check
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- Linux / Android / Web (Ubuntu Runner) ---
+          - platform: android
+            os: ubuntu-latest
+            command: flutter build apk --release
+          - platform: linux
+            os: ubuntu-latest
+            command: flutter build linux --release
+          - platform: web
+            os: ubuntu-latest
+            command: flutter build web --release
+          
+          # --- iOS / macOS (macOS Runner) ---
+          - platform: ios
+            os: macos-latest
+            command: flutter build ios --release --no-codesign
+          - platform: macos
+            os: macos-latest
+            command: flutter build macos --release --no-codesign
+
+          # --- Windows (Windows Runner) ---
+          - platform: windows
+            os: windows-latest
+            command: flutter build windows --release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Linux 系统依赖安装（仅 Linux 平台需要）
+      - name: Install Linux System Dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            liblzma-dev \
+            libstdc++-12-dev \
+            libsecret-1-dev \
+            libjsoncpp-dev \
+            libsecret-1-0
+
+      # 1. Android SDK 安装（仅 Android 平台需要）
+      - name: Setup Java for Android
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 2. 安装 Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          # 自动根据 pubspec.lock 缓存依赖，大幅提升速度
+          cache-key: 'flutter-:os:-:channel:-:filehash:pubspec.lock'
+
+      # 3. 获取 Dart/Flutter 依赖
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      # 4. 最终构建指令
+      - name: Run Build Command
+        run: ${{ matrix.command }}
+
+      # 5. 上传构建产物
+      - name: Upload Android APK
+        if: matrix.platform == 'android'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+      - name: Upload Linux Build
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build/linux/x64/release/bundle/
+          retention-days: 7
+
+      - name: Upload Web Build
+        if: matrix.platform == 'web'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web/
+          retention-days: 7
+
+      - name: Upload iOS Simulator Build
+        if: matrix.platform == 'ios'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: build/ios/iphoneos/Runner.app
+          retention-days: 7
+
+      - name: Upload macOS Build
+        if: matrix.platform == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: build/macos/Build/Products/Release/
+          retention-days: 7
+
+      - name: Upload Windows Build
+        if: matrix.platform == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/windows/x64/runner/Release/
+          retention-days: 7
