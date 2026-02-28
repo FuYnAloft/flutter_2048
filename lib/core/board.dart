@@ -1,6 +1,6 @@
 ﻿import 'dart:math';
 
-import '../model/tile_entity.dart';
+import '../models/tile_entity.dart';
 
 /// 2048游戏的棋盘类
 class Board {

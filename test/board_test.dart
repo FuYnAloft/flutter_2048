@@ -1,5 +1,5 @@
 ﻿import 'package:flutter_2048/core/board.dart';
-import 'package:flutter_2048/model/tile_entity.dart';
+import 'package:flutter_2048/models/tile_entity.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
