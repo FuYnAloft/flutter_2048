@@ -1,30 +1,28 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+// 2048游戏Widget测试
 
 import 'package:flutter_2048/main.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('2048游戏启动测试', (WidgetTester tester) async {
+    // 构建应用并触发一帧
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // 验证标题显示
+    expect(find.text('2048'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // 验证新游戏按钮存在
+    expect(find.text('新游戏'), findsOneWidget);
+  });
+
+  testWidgets('点击新游戏按钮测试', (WidgetTester tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    // 点击新游戏按钮
+    await tester.tap(find.text('新游戏'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // 验证游戏仍然显示
+    expect(find.text('2048'), findsOneWidget);
   });
 }

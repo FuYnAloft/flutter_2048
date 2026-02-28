@@ -35,7 +35,8 @@ void main() {
 
       // 验证移动和合并
       expect(mergedTiles, isNotNull);
-      expect(mergedTiles!.length, 1);
+      // mergedTiles包含合并后的方块(1个)和新随机生成的方块(1个)
+      expect(mergedTiles!.length, 2);
       expect(board.tiles[0][3]?.value, 2); // value=2 代表 4
     });
 
@@ -55,7 +56,8 @@ void main() {
 
       // 验证移动和合并
       expect(mergedTiles, isNotNull);
-      expect(mergedTiles!.length, 1);
+      // mergedTiles包含合并后的方块(1个)和新随机生成的方块(1个)
+      expect(mergedTiles!.length, 2);
       expect(board.tiles[0][0]?.value, 3); // value=3 代表 8
     });
 
@@ -74,7 +76,8 @@ void main() {
       final mergedTiles = board.moveUp();
 
       expect(mergedTiles, isNotNull);
-      expect(mergedTiles!.length, 1);
+      // mergedTiles包含合并后的方块(1个)和新随机生成的方块(1个)
+      expect(mergedTiles!.length, 2);
       expect(board.tiles[0][0]?.value, 2);
     });
 
@@ -93,7 +96,8 @@ void main() {
       final mergedTiles = board.moveDown();
 
       expect(mergedTiles, isNotNull);
-      expect(mergedTiles!.length, 1);
+      // mergedTiles包含合并后的方块(1个)和新随机生成的方块(1个)
+      expect(mergedTiles!.length, 2);
       expect(board.tiles[3][0]?.value, 2);
     });
 
