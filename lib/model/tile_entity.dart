@@ -1,38 +1,36 @@
 ﻿import 'dart:math';
 
+import 'package:uuid/uuid.dart';
+
 enum AnimationState { normal, merged }
 
 class TileEntity {
-  final int id;
+  final String id;
   final int value; // 1 -> 2, 2 -> 4, 3 -> 8, ...
-  TileEntity? delegate;
+  TileEntity? _delegate;
   int _row;
   int _column;
   AnimationState animationState = .normal;
 
-  int get row => delegate?._row ?? _row;
+  int get row => _delegate?._row ?? _row;
 
-  set row(int other) => _row = other;
+  int get column => _delegate?._column ?? _column;
 
-  int get column => delegate?._column ?? _column;
-
-  set column(int other) => _column = other;
-
-  TileEntity(this.id, this.value, this._row, this._column, [this.delegate]);
+  TileEntity(this.value, this._row, this._column) : id = const Uuid().v4();
 
   TileEntity? mergeWith(TileEntity other) {
     if (value != other.value) return null;
-    final merged = TileEntity(id, value + 1, row, column);
+    final merged = TileEntity(value + 1, row, column);
     animationState = .merged;
     other.animationState = .merged;
-    delegate = merged;
-    other.delegate = merged;
+    _delegate = merged;
+    other._delegate = merged;
     return merged;
   }
 
   void moveTo(int newRow, int newColumn) {
-    row = newRow;
-    column = newColumn;
+    _row = newRow;
+    _column = newColumn;
   }
 
   @override
