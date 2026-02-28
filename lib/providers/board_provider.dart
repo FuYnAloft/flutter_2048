@@ -1,14 +1,16 @@
+import 'dart:math';
+
 import 'package:circular_buffer/circular_buffer.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_2048/core/board.dart';
 import 'package:flutter_2048/models/tile_entity.dart';
 
-/// 为动画提供完整的状态管理，持有一个循环缓冲区，用于存储 “可见” 的方块实体
+/// 为动画提供完整的状态管理，持有一个循环缓冲区，用于存储 "可见" 的方块实体
 class BoardProvider extends ChangeNotifier {
   final Board board;
 
-  /// 一个循环缓冲区，用于存储 “可见” 的方块实体
+  /// 一个循环缓冲区，用于存储 "可见" 的方块实体
   final CircularBuffer<TileEntity> _buffer;
 
   /// 缓冲区中的方块实体按渲染顺序排序后的结果，对应 Stack 中的顺序
@@ -19,12 +21,26 @@ class BoardProvider extends ChangeNotifier {
   /// [direction] - 1: 向右/下, -1: 向左/上
   ({int axis, int direction}) lastMove = (axis: 0, direction: 1);
 
+  /// 当前分数
+  int _score = 0;
+  int get score => _score;
+
+  /// 最高分
+  int _bestScore = 0;
+  int get bestScore => _bestScore;
+
+  /// 游戏是否结束
+  bool get isGameOver => !board.canMove();
+
+  /// 是否已经达成2048
+  bool get hasWon => board.hasWon();
+
   BoardProvider(this.board, {int bufferSize = 32})
     : _buffer = CircularBuffer(bufferSize),
       stackSorted = [] {
     // 初始化棋盘并将初始方块添加到缓冲区
     final initialTiles = board.init();
-    _buffer.addAll(initialTiles);
+    initialTiles.forEach(_buffer.add);
     stackSorted = initialTiles;
   }
 
@@ -44,42 +60,68 @@ class BoardProvider extends ChangeNotifier {
     super.notifyListeners();
   }
 
+  void _addScore(List<TileEntity> mergedTiles) {
+    // 计算合成的方块分数
+    for (final tile in mergedTiles) {
+      if (tile.animationState != AnimationState.merged) {
+        // 只计算新合成的方块（不是被合并消失的方块）
+        _score += pow(2, tile.value).toInt();
+      }
+    }
+    if (_score > _bestScore) {
+      _bestScore = _score;
+    }
+  }
+
   void moveRight() {
+    print('move invoked');
     final newTiles = board.moveRight();
     if (newTiles == null) return;
+    print(board);
     lastMove = (axis: 0, direction: 1);
-    _buffer.addAll(newTiles);
+    _addScore(newTiles);
+    newTiles.forEach(_buffer.add);
     notifyListeners();
   }
 
   void moveLeft() {
+    print('move invoked');
     final newTiles = board.moveLeft();
     if (newTiles == null) return;
+    print(board);
     lastMove = (axis: 0, direction: -1);
-    _buffer.addAll(newTiles);
+    _addScore(newTiles);
+    newTiles.forEach(_buffer.add);
     notifyListeners();
   }
 
   void moveUp() {
+    print('move invoked');
     final newTiles = board.moveUp();
     if (newTiles == null) return;
+    print(board);
     lastMove = (axis: 1, direction: -1);
-    _buffer.addAll(newTiles);
+    _addScore(newTiles);
+    newTiles.forEach(_buffer.add);
     notifyListeners();
   }
 
   void moveDown() {
+    print('move invoked');
     final newTiles = board.moveDown();
     if (newTiles == null) return;
+    print(board);
     lastMove = (axis: 1, direction: 1);
-    _buffer.addAll(newTiles);
+    _addScore(newTiles);
+    newTiles.forEach(_buffer.add);
     notifyListeners();
   }
 
   void reset() {
+    _score = 0;
     final newTiles = board.reset();
     _buffer.clear();
-    _buffer.addAll(newTiles);
+    newTiles.forEach(_buffer.add);
     notifyListeners();
   }
 }
