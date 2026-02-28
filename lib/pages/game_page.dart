@@ -13,22 +13,20 @@ class GamePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8EF),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 标题和控制栏
-            _buildHeader(context),
-            // 分数显示
-            _buildScoreBoard(context),
-            // 游戏区域
-            Expanded(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _GameBoard(),
-                ),
+        child: Padding(
+          padding: const .symmetric(vertical: 16.0),
+          child: Column(
+            spacing: 16.0,
+            children: [
+              // 标题和分数显示和控制栏
+              Padding(
+                padding: const .symmetric(horizontal: 16),
+                child: _buildScoreBoard(context),
               ),
-            ),
-          ],
+              // 游戏区域
+              Expanded(child: _GameBoard()),
+            ],
+          ),
         ),
       ),
     );
@@ -73,20 +71,64 @@ class GamePage extends StatelessWidget {
   }
 
   Widget _buildScoreBoard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Consumer<BoardProvider>(
-        builder: (context, provider, child) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _ScoreBox(label: '分数', value: provider.score),
-              const SizedBox(width: 12),
-              _ScoreBox(label: '最高分', value: provider.bestScore),
-            ],
-          );
-        },
-      ),
+    return Row(
+      spacing: 8.0,
+      mainAxisAlignment: .center,
+      children: [
+        // 标题
+        Expanded(
+          child: Align(
+            alignment: .centerLeft,
+            child: const Text(
+              '2048',
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF776E65),
+              ),
+            ),
+          ),
+        ),
+        // 计分板
+        Consumer<BoardProvider>(
+          builder: (context, provider, child) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ScoreBox(label: '分数', value: provider.score),
+                const SizedBox(width: 12),
+                _ScoreBox(label: '最高分', value: provider.bestScore),
+              ],
+            );
+          },
+        ),
+        // 重新开始按钮
+        Expanded(
+          child: Align(
+            alignment: .centerRight,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<BoardProvider>().reset();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8F7A66),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                '新游戏',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -218,45 +260,53 @@ class _GameBoardState extends State<_GameBoard> {
 class _GameOverOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFAF8EF).withOpacity(0.7),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '游戏结束!',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF776E65),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                context.read<BoardProvider>().reset();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8F7A66),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
+    return TweenAnimationBuilder(
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 1000),
+      curve: Interval(0.5, 1.0),
+      builder: (_, value, _) => Opacity(
+        opacity: value,
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF8EF).withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '游戏结束!',
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF776E65),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<BoardProvider>().reset();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8F7A66),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    '再来一局',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              child: const Text(
-                '再来一局',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
