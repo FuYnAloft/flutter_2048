@@ -48,16 +48,36 @@ class Board {
   }
 
   /// 向右移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveRight() => _move(0, 1);
+  List<TileEntity>? moveRight() {
+    final newTiles = _move(0, 1);
+    if (newTiles == null) return null;
+    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
+    return newTiles;
+  }
 
   /// 向左移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveLeft() => _move(0, -1);
+  List<TileEntity>? moveLeft() {
+    final newTiles = _move(0, -1);
+    if (newTiles == null) return null;
+    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
+    return newTiles;
+  }
 
   /// 向上移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveUp() => _move(1, -1);
+  List<TileEntity>? moveUp() {
+    final newTiles = _move(1, -1);
+    if (newTiles == null) return null;
+    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
+    return newTiles;
+  }
 
   /// 向下移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveDown() => _move(1, 1);
+  List<TileEntity>? moveDown() {
+    final newTiles = _move(1, 1);
+    if (newTiles == null) return null;
+    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
+    return newTiles;
+  }
 
   /// 通用移动方法
   /// [axis] - 0: 横向移动, 1: 纵向移动

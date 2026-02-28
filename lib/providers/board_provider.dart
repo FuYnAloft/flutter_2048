@@ -47,6 +47,7 @@ class BoardProvider extends ChangeNotifier {
   void moveRight() {
     final newTiles = board.moveRight();
     if (newTiles == null) return;
+    lastMove = (axis: 0, direction: 1);
     _buffer.addAll(newTiles);
     notifyListeners();
   }
@@ -54,6 +55,7 @@ class BoardProvider extends ChangeNotifier {
   void moveLeft() {
     final newTiles = board.moveLeft();
     if (newTiles == null) return;
+    lastMove = (axis: 0, direction: -1);
     _buffer.addAll(newTiles);
     notifyListeners();
   }
@@ -61,6 +63,7 @@ class BoardProvider extends ChangeNotifier {
   void moveUp() {
     final newTiles = board.moveUp();
     if (newTiles == null) return;
+    lastMove = (axis: 1, direction: -1);
     _buffer.addAll(newTiles);
     notifyListeners();
   }
@@ -68,6 +71,7 @@ class BoardProvider extends ChangeNotifier {
   void moveDown() {
     final newTiles = board.moveDown();
     if (newTiles == null) return;
+    lastMove = (axis: 1, direction: 1);
     _buffer.addAll(newTiles);
     notifyListeners();
   }
