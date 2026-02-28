@@ -6,6 +6,7 @@ void main() {
   group('Board Tests', () {
     test('Board初始化测试', () {
       final board = Board(4);
+      board.init();
       expect(board.size, 4);
       expect(board.getEmptyCellCount(), 14); // init()会添加2个方块
       expect(board.getAllTiles().length, 2);
@@ -154,6 +155,7 @@ void main() {
 
     test('reset方法测试', () {
       final board = Board(4);
+      board.init();
       board.randomAdd();
       board.randomAdd();
 

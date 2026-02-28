@@ -9,18 +9,20 @@ class Board {
   final Random _random = Random();
 
   Board(this.size)
-    : tiles = List.generate(size, (_) => List.filled(size, null)) {
-    init();
-  }
+    : tiles = List.generate(size, (_) => List.filled(size, null));
 
   /// 初始化棋盘，放置两个初始方块
-  void init() {
-    randomAdd();
-    randomAdd();
+  List<TileEntity> init() {
+    final tiles = <TileEntity>[];
+    final tile1 = randomAdd();
+    if (tile1 != null) tiles.add(tile1);
+    final tile2 = randomAdd();
+    if (tile2 != null) tiles.add(tile2);
+    return tiles;
   }
 
   /// 在棋盘上随机添加一个新的方块，值为 2 (90%) 或 4 (10%)
-  void randomAdd() {
+  TileEntity? randomAdd() {
     final emptyCells = <Point<int>>[];
 
     // 找出所有空位置
@@ -32,7 +34,7 @@ class Board {
       }
     }
 
-    if (emptyCells.isEmpty) return;
+    if (emptyCells.isEmpty) return null;
 
     // 随机选择一个空位置
     final position = emptyCells[_random.nextInt(emptyCells.length)];
@@ -40,7 +42,9 @@ class Board {
     // 90% 概率生成 2 (value=1), 10% 概率生成 4 (value=2)
     final value = _random.nextDouble() < 0.9 ? 1 : 2;
 
-    tiles[position.x][position.y] = TileEntity(value, position.x, position.y);
+    final newTile = TileEntity(value, position.x, position.y);
+    tiles[position.x][position.y] = newTile;
+    return newTile;
   }
 
   /// 向右移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
@@ -163,13 +167,13 @@ class Board {
   }
 
   /// 重置棋盘，清空所有方块并重新初始化
-  void reset() {
+  List<TileEntity> reset() {
     for (int i = 0; i < size; i++) {
       for (int j = 0; j < size; j++) {
         tiles[i][j] = null;
       }
     }
-    init();
+    return init();
   }
 
   /// 获取当前棋盘上的最高分数（最大方块的值）
