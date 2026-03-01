@@ -11,10 +11,10 @@ class BoardProvider extends ChangeNotifier {
   final int bufferSize;
 
   /// 一个缓冲区，用于存储 "可见" 的方块实体，应当消失的块应该在左边
-  final List<TileEntity> _buffer;
+  final Map<String, TileEntity> _buffer;
 
   /// 缓冲区中的方块实体按渲染顺序排序后的结果，对应 Stack 中的顺序
-  Iterable<TileEntity> get stackSorted => _buffer.toList(); // 现在仅仅是转发
+  Iterable<TileEntity> stackSorted = [];
 
   /// 记录上一次移动的方向和轴，用于动画的方向判断
   /// [axis] - 0: 横向移动, 1: 纵向移动
@@ -37,28 +37,33 @@ class BoardProvider extends ChangeNotifier {
   /// 是否已经达成2048
   bool get hasWon => board.hasWon();
 
-  BoardProvider(this.board, {this.bufferSize = 64}) : _buffer = [] {
+  BoardProvider(this.board, {this.bufferSize = 64}) : _buffer = {} {
     // 初始化棋盘并将初始方块添加到缓冲区
     final initialTiles = board.init();
     _addAllToBuffer(initialTiles);
   }
 
   void _addAllToBuffer(Iterable<TileEntity> tiles) {
-    final it = tiles.iterator;
-    while (_buffer.length <= bufferSize) {
-      if (!it.moveNext()) return;
-      _buffer.add(it.current);
-    }
-    for (int i = 0; i < bufferSize; i++) {
-      if (!it.moveNext()) return;
-      _buffer[i] = it.current;
+    for (final tile in tiles) {
+      _buffer[tile.id] = tile;
     }
   }
 
+  void _updateBuffer(BoardChange change) {
+    for (final tile in change.newTiles) {
+      _buffer[tile.id] = tile;
+    }
+    Future.delayed(Duration(milliseconds: 500), () {
+      for (final tile in change.mergedTiles) {
+        _buffer.remove(tile.id);
+      }
+    });
+  }
+
   void _sortBuffer() {
-    // 更新 _buffer，使其反映方块实体的渲染顺序
+    // 更新 stackSorted，使其反映方块实体的渲染顺序
     // 正常的块应该放到上面；横向移动时根据列排序，纵向移动时根据行排序；最后value越小放列表左边，方便覆盖
-    _buffer.sortBy((tile) {
+    stackSorted = _buffer.values.sortedBy((tile) {
       final stateFactor = tile.animationState == AnimationState.normal ? 1 : 0;
       final positionFactor = lastMove.axis == 0
           ? lastMove.direction * tile.column

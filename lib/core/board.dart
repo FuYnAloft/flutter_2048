@@ -2,6 +2,16 @@
 
 import '../models/tile_entity.dart';
 
+class BoardChange {
+  /// 参与合成的方块实体列表
+  final List<TileEntity> mergedTiles;
+
+  /// 新生成的方块实体列表
+  final List<TileEntity> newTiles;
+
+  BoardChange(this.mergedTiles, this.newTiles);
+}
+
 /// 2048游戏的棋盘类
 class Board {
   final int size;
