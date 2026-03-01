@@ -3,14 +3,12 @@ name: Full Platform Build
 on:
   workflow_dispatch:
 
-# 配置权限
 permissions:
-  contents: read
+  contents: write # 需要写权限来创建/更新 Release
   pages: write
   id-token: write
 
 concurrency:
-  # 限制部署并发
   group: "pages"
   cancel-in-progress: true
 
@@ -22,58 +20,60 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # --- Linux / Android / Web (Ubuntu Runner) ---
+          # --- Linux ---
+          - platform: linux
+            os: ubuntu-latest
+            command: flutter build linux --release
+            artifact_path: build/linux/x64/release/bundle
+            # 定义压缩后的输出文件名
+            output_name: app-release-linux.zip
+
+          # --- Android ---
           - platform: android
             os: ubuntu-latest
             command: flutter build apk --release
             artifact_path: build/app/outputs/flutter-apk/app-release.apk
-          - platform: linux
-            os: ubuntu-latest
-            command: flutter build linux --release
-            artifact_path: build/linux/x64/release/bundle/
-          # Web 需要指定 base-href 来正确处理 GitHub Pages 的路径问题
+            output_name: app-release-android.apk
+
+          # --- Web ---
           - platform: web
             os: ubuntu-latest
             command: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
-            artifact_path: build/web/
+            artifact_path: build/web
+            output_name: app-release-web.zip
 
-          # --- iOS / macOS (macOS Runner) ---
+          # --- iOS ---
           - platform: ios
             os: macos-latest
             command: flutter build ios --release --no-codesign
             artifact_path: build/ios/iphoneos/Runner.app
+            output_name: app-release-ios.zip
+
+          # --- macOS ---
           - platform: macos
             os: macos-latest
             command: flutter build macos --release
-            artifact_path: build/macos/Build/Products/Release/
+            artifact_path: build/macos/Build/Products/Release
+            output_name: app-release-macos.zip
 
-          # --- Windows (Windows Runner) ---
+          # --- Windows ---
           - platform: windows
             os: windows-latest
             command: flutter build windows --release
-            artifact_path: build/windows/x64/runner/Release/
+            artifact_path: build/windows/x64/runner/Release
+            output_name: app-release-windows.zip
 
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Linux 系统依赖安装（仅 Linux 平台需要）
+      # 1. Linux 依赖
       - name: Install Linux System Dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            clang \
-            cmake \
-            ninja-build \
-            pkg-config \
-            libgtk-3-dev \
-            liblzma-dev \
-            libstdc++-12-dev \
-            libsecret-1-dev \
-            libjsoncpp-dev \
-            libsecret-1-0
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev libjsoncpp-dev libsecret-1-0 zip
 
-      # 1. Android SDK 安装（仅 Android 平台需要）
+      # 1. Android Java 环境
       - name: Setup Java for Android
         if: matrix.platform == 'android'
         uses: actions/setup-java@v4
@@ -94,19 +94,62 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # 4. 执行 Release 构建
+      # 4. 构建
       - name: Run Build Command
         run: ${{ matrix.command }}
 
-      # 5. 上传构建产物
-      - name: Upload Release Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.platform }} release
-          path: ${{ matrix.artifact_path }}
-          retention-days: 7
+      # ----------------------------------------------------------------
+      # 新增步骤 A：打包/重命名构建产物
+      # 因为 Release 只能传文件，不能传文件夹，所以需要压缩
+      # ----------------------------------------------------------------
 
-      # 5. 上传 GitHub Pages 产物（仅 Web 平台执行  ）
+      # 针对 Linux, Web, macOS, IOS (Bash 环境) 的打包逻辑
+      - name: Package (Unix)
+        if: runner.os != 'Windows' && matrix.platform != 'android'
+        run: |
+          # 进入产物父目录
+          cd "$(dirname "${{ matrix.artifact_path }}")"
+          # 获取产物文件夹名
+          BASENAME="$(basename "${{ matrix.artifact_path }}")"
+          # 压缩
+          zip -r "${{ github.workspace }}/${{ matrix.output_name }}" "$BASENAME"
+
+      # 针对 Android (本来就是文件，直接重命名/复制出来)
+      - name: Package (Android)
+        if: matrix.platform == 'android'
+        run: |
+          mv "${{ matrix.artifact_path }}" "${{ github.workspace }}/${{ matrix.output_name }}"
+
+      # 针对 Windows (PowerShell 环境) 的打包逻辑
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Compress-Archive -Path "${{ matrix.artifact_path }}\*" -DestinationPath "${{ github.workspace }}\${{ matrix.output_name }}"
+
+      # ----------------------------------------------------------------
+      # 新增步骤 B：上传到 Release
+      # ----------------------------------------------------------------
+      - name: Upload to Nightly Release
+        uses: ncipollo/release-action@v1
+        with:
+          # 指定上传刚刚打包好的文件
+          artifacts: "${{ matrix.output_name }}"
+          # 必须指定 tag 名称
+          tag: "nightly"
+          # 允许更新同一个 tag（实现覆盖效果）
+          allowUpdates: true
+          # 如果文件重名，则替换旧文件
+          replacesArtifacts: true
+          # 标记为预发布
+          prerelease: true
+          # 将此 Release 标记为 Latest (可选，如果是 nightly 通常设为 false，这里设 true 会让它在首页显示)
+          makeLatest: true
+          # 如果 tag 不存在则创建，Body 和 Name 可以自定义
+          name: "Nightly Build"
+          body: "Latest automated build from the main branch."
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 5. 上传 GitHub Pages 产物 (Web 平台保留此步用于部署 Pages 页面)
       - name: Upload GitHub Pages Artifact
         if: matrix.platform == 'web'
         uses: actions/upload-pages-artifact@v3
@@ -116,7 +159,7 @@ jobs:
   # 部署 Web 页面
   deploy-pages:
     name: Deploy to GitHub Pages
-    needs: build # 依赖 build 任务完成
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
