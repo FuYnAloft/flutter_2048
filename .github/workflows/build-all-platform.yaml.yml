@@ -1,11 +1,22 @@
 name: Full Platform Build
 
 on:
-  - workflow_dispatch
+  workflow_dispatch:
+
+# 配置权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  # 限制部署并发
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: ${{ matrix.platform }} Check
+    name: ${{ matrix.platform }} Build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -15,25 +26,32 @@ jobs:
           - platform: android
             os: ubuntu-latest
             command: flutter build apk --release
+            artifact_path: build/app/outputs/flutter-apk/app-release.apk
           - platform: linux
             os: ubuntu-latest
             command: flutter build linux --release
+            artifact_path: build/linux/x64/release/bundle/
+          # Web 需要指定 base-href 来正确处理 GitHub Pages 的路径问题
           - platform: web
             os: ubuntu-latest
-            command: flutter build web --release
-          
+            command: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+            artifact_path: build/web/
+
           # --- iOS / macOS (macOS Runner) ---
           - platform: ios
             os: macos-latest
             command: flutter build ios --release --no-codesign
+            artifact_path: build/ios/iphoneos/Runner.app
           - platform: macos
             os: macos-latest
-            command: flutter build macos --release --no-codesign
+            command: flutter build macos --release
+            artifact_path: build/macos/Build/Products/Release/
 
           # --- Windows (Windows Runner) ---
           - platform: windows
             os: windows-latest
             command: flutter build windows --release
+            artifact_path: build/windows/x64/runner/Release/
 
     steps:
       - uses: actions/checkout@v4
@@ -76,55 +94,34 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
-      # 4. 最终构建指令
+      # 4. 执行 Release 构建
       - name: Run Build Command
         run: ${{ matrix.command }}
 
       # 5. 上传构建产物
-      - name: Upload Android APK
-        if: matrix.platform == 'android'
+      - name: Upload Release Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: ${{ matrix.platform }} release
+          path: ${{ matrix.artifact_path }}
           retention-days: 7
 
-      - name: Upload Linux Build
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-build
-          path: build/linux/x64/release/bundle/
-          retention-days: 7
-
-      - name: Upload Web Build
+      # 5. 上传 GitHub Pages 产物（仅 Web 平台执行  ）
+      - name: Upload GitHub Pages Artifact
         if: matrix.platform == 'web'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: web-build
-          path: build/web/
-          retention-days: 7
+          path: ${{ matrix.artifact_path }}
 
-      - name: Upload iOS Simulator Build
-        if: matrix.platform == 'ios'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-simulator-app
-          path: build/ios/iphoneos/Runner.app
-          retention-days: 7
-
-      - name: Upload macOS Build
-        if: matrix.platform == 'macos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: build/macos/Build/Products/Release/
-          retention-days: 7
-
-      - name: Upload Windows Build
-        if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: build/windows/x64/runner/Release/
-          retention-days: 7
+  # 部署 Web 页面
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build # 依赖 build 任务完成
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
