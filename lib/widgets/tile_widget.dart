@@ -79,7 +79,7 @@ class _AnimatedTileContent extends StatelessWidget {
     final textColor = gameTheme.getTileTextColor(tile.value);
 
     // 根据数值大小调整字体大小
-    final double fontSize = tileSize * 0.5;
+    final double fontSize = tileSize * 0.45;
 
     // 计算缩放动画前时长在总时长中所占的比例
     final double beginRatio =
@@ -106,7 +106,14 @@ class _AnimatedTileContent extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 6,
+              offset: const Offset(1, 2),
+            ),
+          ],
         ),
         child: Center(
           child: Text(

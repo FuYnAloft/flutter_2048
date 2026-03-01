@@ -9,9 +9,9 @@ import 'package:provider/provider.dart';
 /// 棋盘Widget
 class BoardWidget extends StatelessWidget {
   final int gridSize;
-  final double tileSizeFactor;
+  final double spacingFactor;
 
-  const BoardWidget({super.key, this.gridSize = 4, this.tileSizeFactor = 0.85});
+  const BoardWidget({super.key, this.gridSize = 4, this.spacingFactor = 0.125});
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +23,22 @@ class BoardWidget extends StatelessWidget {
         final boardSize = min(constraints.maxWidth, constraints.maxHeight);
 
         // 计算单个方块大小
-        final tileSize = boardSize * tileSizeFactor / gridSize;
-        final spacing =
-            (boardSize - boardSize * tileSizeFactor) / (gridSize + 1);
+        final tileSize = boardSize * (1 - spacingFactor) / gridSize;
+        final spacing = boardSize * spacingFactor / (gridSize + 1);
 
         return Container(
           width: boardSize,
           height: boardSize,
           decoration: BoxDecoration(
             color: gameTheme.boardBackground,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: .circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 8,
+                offset: const Offset(2, 4),
+              ),
+            ],
           ),
           child: Stack(
             clipBehavior: .none,
@@ -62,7 +68,7 @@ class BoardWidget extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: gameTheme.emptyTileBackground,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),
