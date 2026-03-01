@@ -3,13 +3,13 @@
 import '../models/tile_entity.dart';
 
 class BoardChange {
-  /// 参与合成的方块实体列表
+  /// 因合成而消失的方块实体列表（参与合并的两个原始方块）
   final List<TileEntity> mergedTiles;
 
-  /// 新生成的方块实体列表
+  /// 新产生的方块实体列表（合成生成的新方块 + 随机生成的方块）
   final List<TileEntity> newTiles;
 
-  BoardChange(this.mergedTiles, this.newTiles);
+  BoardChange({required this.mergedTiles, required this.newTiles});
 }
 
 /// 2048游戏的棋盘类
@@ -18,17 +18,22 @@ class Board {
   final List<List<TileEntity?>> tiles;
   final Random _random = Random();
 
+  /// 当前分数
+  int _score = 0;
+
+  int get score => _score;
+
   Board(this.size)
     : tiles = List.generate(size, (_) => List.filled(size, null));
 
   /// 初始化棋盘，放置两个初始方块
-  List<TileEntity> init() {
-    final tiles = <TileEntity>[];
+  BoardChange init() {
+    final newTiles = <TileEntity>[];
     final tile1 = randomAdd();
-    if (tile1 != null) tiles.add(tile1);
+    if (tile1 != null) newTiles.add(tile1);
     final tile2 = randomAdd();
-    if (tile2 != null) tiles.add(tile2);
-    return tiles;
+    if (tile2 != null) newTiles.add(tile2);
+    return BoardChange(mergedTiles: [], newTiles: newTiles);
   }
 
   /// 在棋盘上随机添加一个新的方块，值为 2 (90%) 或 4 (10%)
@@ -57,44 +62,25 @@ class Board {
     return newTile;
   }
 
-  /// 向右移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveRight() {
-    final newTiles = _move(0, 1);
-    if (newTiles == null) return null;
-    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
-    return newTiles;
-  }
+  /// 向右移动棋盘上的所有方块，返回 BoardChange，如果无法移动返回 null
+  BoardChange? moveRight() => _move(0, 1);
 
-  /// 向左移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveLeft() {
-    final newTiles = _move(0, -1);
-    if (newTiles == null) return null;
-    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
-    return newTiles;
-  }
+  /// 向左移动棋盘上的所有方块，返回 BoardChange，如果无法移动返回 null
+  BoardChange? moveLeft() => _move(0, -1);
 
-  /// 向上移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveUp() {
-    final newTiles = _move(1, -1);
-    if (newTiles == null) return null;
-    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
-    return newTiles;
-  }
+  /// 向上移动棋盘上的所有方块，返回 BoardChange，如果无法移动返回 null
+  BoardChange? moveUp() => _move(1, -1);
 
-  /// 向下移动棋盘上的所有方块，返回所有新合成的方块实体，如果无法移动返回 null
-  List<TileEntity>? moveDown() {
-    final newTiles = _move(1, 1);
-    if (newTiles == null) return null;
-    newTiles.add(randomAdd()!); // 合成成功，一定至少有一个空格子
-    return newTiles;
-  }
+  /// 向下移动棋盘上的所有方块，返回 BoardChange，如果无法移动返回 null
+  BoardChange? moveDown() => _move(1, 1);
 
   /// 通用移动方法
   /// [axis] - 0: 横向移动, 1: 纵向移动
   /// [direction] - 1: 向右/下, -1: 向左/上
-  List<TileEntity>? _move(int axis, int direction) {
+  BoardChange? _move(int axis, int direction) {
     bool moved = false;
-    final List<TileEntity> mergedTiles = [];
+    final List<TileEntity> disappearedTiles = []; // 参与合并而消失的原始方块
+    final List<TileEntity> newTiles = []; // 合并产生的新方块
 
     for (int line = 0; line < size; line++) {
       // 收集当前行/列的所有非空方块
@@ -126,7 +112,8 @@ class Board {
         if ((direction == 1 && nextIndex >= 0) ||
             (direction == -1 && nextIndex < lineTiles.length)) {
           if (current.value == lineTiles[nextIndex].value) {
-            final merged = current.mergeWith(lineTiles[nextIndex])!;
+            final other = lineTiles[nextIndex];
+            final merged = current.mergeWith(other)!;
 
             // 设置合并后方块的位置
             if (axis == 0) {
@@ -137,10 +124,15 @@ class Board {
               tiles[targetPos][line] = merged;
             }
 
-            mergedTiles.add(merged);
+            disappearedTiles.add(current);
+            disappearedTiles.add(other);
+            newTiles.add(merged);
+            // 计分：每个消失的原始方块贡献 pow(2, value)
+            _score += pow(2, current.value).toInt();
+            _score += pow(2, other.value).toInt();
             moved = true;
 
-            // 跳过已合并的两个方块（它们已经有delegate，不需要再移动）
+            // 跳过已合并的两个方块
             i += direction == 1 ? -2 : 2;
             targetPos += direction == 1 ? -1 : 1;
             continue;
@@ -163,7 +155,12 @@ class Board {
       }
     }
 
-    return moved ? mergedTiles : null;
+    if (!moved) return null;
+    final spawned = randomAdd()!;
+    return BoardChange(
+      mergedTiles: disappearedTiles,
+      newTiles: [...newTiles, spawned],
+    );
   }
 
   /// 返回是否还可以移动
@@ -197,7 +194,8 @@ class Board {
   }
 
   /// 重置棋盘，清空所有方块并重新初始化
-  List<TileEntity> reset() {
+  BoardChange reset() {
+    _score = 0;
     for (int i = 0; i < size; i++) {
       for (int j = 0; j < size; j++) {
         tiles[i][j] = null;

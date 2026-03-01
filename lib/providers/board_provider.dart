@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_2048/core/board.dart';
@@ -21,15 +19,13 @@ class BoardProvider extends ChangeNotifier {
   /// [direction] - 1: 向右/下, -1: 向左/上
   ({int axis, int direction}) lastMove = (axis: 0, direction: 1);
 
-  /// 当前分数
-  int _score = 0;
-
-  int get score => _score;
-
   /// 最高分
   int _bestScore = 0;
 
   int get bestScore => _bestScore;
+
+  /// 当前分数（从棋盘获取）
+  int get score => board.score;
 
   /// 游戏是否结束
   bool get isGameOver => !board.canMove();
@@ -38,26 +34,22 @@ class BoardProvider extends ChangeNotifier {
   bool get hasWon => board.hasWon();
 
   BoardProvider(this.board, {this.bufferSize = 64}) : _buffer = {} {
-    // 初始化棋盘并将初始方块添加到缓冲区
-    final initialTiles = board.init();
-    _addAllToBuffer(initialTiles);
-  }
-
-  void _addAllToBuffer(Iterable<TileEntity> tiles) {
-    for (final tile in tiles) {
-      _buffer[tile.id] = tile;
-    }
+    final change = board.init();
+    _updateBuffer(change);
   }
 
   void _updateBuffer(BoardChange change) {
     for (final tile in change.newTiles) {
       _buffer[tile.id] = tile;
     }
-    Future.delayed(Duration(milliseconds: 500), () {
-      for (final tile in change.mergedTiles) {
-        _buffer.remove(tile.id);
-      }
-    });
+    if (change.mergedTiles.isNotEmpty) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        for (final tile in change.mergedTiles) {
+          _buffer.remove(tile.id);
+        }
+      });
+    }
+    _sortBuffer(); // 更新_buffer的时候直接重新排序
   }
 
   void _sortBuffer() {
@@ -74,64 +66,49 @@ class BoardProvider extends ChangeNotifier {
 
   @override
   void notifyListeners() {
-    _sortBuffer();
+    // 同步最高分
+    if (score > _bestScore) {
+      _bestScore = score;
+    }
     super.notifyListeners();
   }
 
-  void _addScore(List<TileEntity> mergedTiles) {
-    // 计算合成的方块分数
-    for (final tile in mergedTiles) {
-      if (tile.animationState != AnimationState.merged) {
-        // 只计算新合成的方块（不是被合并消失的方块）
-        _score += pow(2, tile.value).toInt();
-      }
-    }
-    if (_score > _bestScore) {
-      _bestScore = _score;
-    }
-  }
-
   void moveRight() {
-    final newTiles = board.moveRight();
-    if (newTiles == null) return;
+    final change = board.moveRight();
+    if (change == null) return;
     lastMove = (axis: 0, direction: 1);
-    _addScore(newTiles);
-    _addAllToBuffer(newTiles);
+    _updateBuffer(change);
     notifyListeners();
   }
 
   void moveLeft() {
-    final newTiles = board.moveLeft();
-    if (newTiles == null) return;
+    final change = board.moveLeft();
+    if (change == null) return;
     lastMove = (axis: 0, direction: -1);
-    _addScore(newTiles);
-    _addAllToBuffer(newTiles);
+    _updateBuffer(change);
     notifyListeners();
   }
 
   void moveUp() {
-    final newTiles = board.moveUp();
-    if (newTiles == null) return;
+    final change = board.moveUp();
+    if (change == null) return;
     lastMove = (axis: 1, direction: -1);
-    _addScore(newTiles);
-    _addAllToBuffer(newTiles);
+    _updateBuffer(change);
     notifyListeners();
   }
 
   void moveDown() {
-    final newTiles = board.moveDown();
-    if (newTiles == null) return;
+    final change = board.moveDown();
+    if (change == null) return;
     lastMove = (axis: 1, direction: 1);
-    _addScore(newTiles);
-    _addAllToBuffer(newTiles);
+    _updateBuffer(change);
     notifyListeners();
   }
 
   void reset() {
-    _score = 0;
-    final newTiles = board.reset();
+    final change = board.reset();
     _buffer.clear();
-    _addAllToBuffer(newTiles);
+    _updateBuffer(change);
     notifyListeners();
   }
 }
