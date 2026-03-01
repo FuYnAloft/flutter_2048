@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_2048/providers/board_provider.dart';
 import 'package:flutter_2048/theme/game_theme.dart';
@@ -7,9 +9,9 @@ import 'package:provider/provider.dart';
 /// 棋盘Widget
 class BoardWidget extends StatelessWidget {
   final int gridSize;
-  final double spacing;
+  final double tileSizeFactor;
 
-  const BoardWidget({super.key, this.gridSize = 4, this.spacing = 12});
+  const BoardWidget({super.key, this.gridSize = 4, this.tileSizeFactor = 0.85});
 
   @override
   Widget build(BuildContext context) {
@@ -18,12 +20,12 @@ class BoardWidget extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // 计算棋盘大小，取宽高中较小的值
-        final boardSize = constraints.maxWidth < constraints.maxHeight
-            ? constraints.maxWidth
-            : constraints.maxHeight;
+        final boardSize = min(constraints.maxWidth, constraints.maxHeight);
 
         // 计算单个方块大小
-        final tileSize = (boardSize - spacing * (gridSize + 1)) / gridSize;
+        final tileSize = boardSize * tileSizeFactor / gridSize;
+        final spacing =
+            (boardSize - boardSize * tileSizeFactor) / (gridSize + 1);
 
         return Container(
           width: boardSize,
@@ -36,9 +38,9 @@ class BoardWidget extends StatelessWidget {
             clipBehavior: .none,
             children: [
               // 底层：空格子背景
-              _buildEmptyGrid(gameTheme, tileSize),
+              _buildEmptyGrid(gameTheme, tileSize, spacing),
               // 上层：方块
-              _buildTiles(context, tileSize),
+              _buildTiles(context, tileSize, spacing),
             ],
           ),
         );
@@ -47,7 +49,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   /// 构建空格子背景网格
-  Widget _buildEmptyGrid(GameTheme gameTheme, double tileSize) {
+  Widget _buildEmptyGrid(GameTheme gameTheme, double tileSize, double spacing) {
     return Stack(
       children: [
         for (int row = 0; row < gridSize; row++)
@@ -69,7 +71,7 @@ class BoardWidget extends StatelessWidget {
   }
 
   /// 构建方块层
-  Widget _buildTiles(BuildContext context, double tileSize) {
+  Widget _buildTiles(BuildContext context, double tileSize, double spacing) {
     return Consumer<BoardProvider>(
       builder: (context, provider, child) {
         return Stack(
