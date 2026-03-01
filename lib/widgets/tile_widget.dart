@@ -94,9 +94,7 @@ class _AnimatedTileContent extends StatelessWidget {
           : Interval(beginRatio * 0.25, 1.0),
       tween: Tween<double>(
         begin: 0.0,
-        end: tile.animationState == .normal
-            ? 1.0
-            : 0.8 + tile.value * 0.01, // 合并后放小一点，以免侧边溢出
+        end: tile.animationState == .normal ? 1.0 : 0.6, // 合并后放小一点，以免侧边溢出
       ),
       builder: (context, value, child) {
         // 将value clamp到0~1范围
