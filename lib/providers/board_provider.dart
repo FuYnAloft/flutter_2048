@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_2048/core/board.dart';
 import 'package:flutter_2048/models/tile_entity.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 为动画提供完整的状态管理，持有一个循环缓冲区，用于存储 "可见" 的方块实体
 class BoardProvider extends ChangeNotifier {
@@ -33,9 +34,22 @@ class BoardProvider extends ChangeNotifier {
   /// 是否已经达成2048
   bool get hasWon => board.hasWon();
 
+  final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
+
   BoardProvider(this.board, {this.bufferSize = 64}) : _buffer = {} {
     final change = board.init();
     _updateBuffer(change);
+    () async {
+      _bestScore = await _prefs.getInt('bestScore') ?? 0;
+      notifyListeners();
+    }();
+  }
+
+  void _updateBuestScore() {
+    if (score > _bestScore) {
+      _bestScore = score;
+      _prefs.setInt('bestScore', _bestScore);
+    }
   }
 
   void _updateBuffer(BoardChange change) {
@@ -67,9 +81,7 @@ class BoardProvider extends ChangeNotifier {
   @override
   void notifyListeners() {
     // 同步最高分
-    if (score > _bestScore) {
-      _bestScore = score;
-    }
+    _updateBuestScore();
     super.notifyListeners();
   }
 
