@@ -78,9 +78,6 @@ class _AnimatedTileContent extends StatelessWidget {
     final backgroundColor = gameTheme.getTileColor(tile.value);
     final textColor = gameTheme.getTileTextColor(tile.value);
 
-    // 根据数值大小调整字体大小
-    final double fontSize = tileSize * 0.45;
-
     // 计算缩放动画前时长在总时长中所占的比例
     final double beginRatio =
         1.0 -
@@ -113,14 +110,19 @@ class _AnimatedTileContent extends StatelessWidget {
             ),
           ],
         ),
+        padding: .all(tileSize * 0.10),
         child: Center(
-          child: Text(
-            displayValue.toString(),
-            style: TextStyle(
-              color: textColor,
-              height: 1.0,
-              fontSize: fontSize,
-              fontWeight: FontWeight.bold,
+          child: FittedBox(
+            fit: .scaleDown,
+            child: Text(
+              displayValue.toString(),
+              maxLines: 1,
+              style: TextStyle(
+                color: textColor,
+                height: 1.0,
+                fontSize: tileSize * 0.45,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),
