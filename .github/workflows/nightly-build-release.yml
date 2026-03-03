@@ -1,4 +1,4 @@
-name: Full Platform Build
+name: Full Platform Nightly Build and Release
 
 on:
   workflow_dispatch:
@@ -25,43 +25,42 @@ jobs:
             os: ubuntu-latest
             command: flutter build linux --release
             artifact_path: build/linux/x64/release/bundle
-            # 定义压缩后的输出文件名
-            output_name: app-release-linux.zip
+            output_name: 2048-nightly-linux-x64.zip
 
           # --- Android ---
           - platform: android
             os: ubuntu-latest
             command: flutter build apk --release --split-per-abi
             artifact_path: build/app/outputs/flutter-apk
-            output_name: app*release.apk
+            output_name: this-do-nothing
 
           # --- Web ---
           - platform: web
             os: ubuntu-latest
             command: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
             artifact_path: build/web
-            output_name: app-release-web.zip
+            output_name: 2048-nightly-web.zip
 
           # --- iOS ---
           - platform: ios
             os: macos-latest
             command: flutter build ios --release --no-codesign
             artifact_path: build/ios/iphoneos/Runner.app
-            output_name: app-release-ios.zip
+            output_name: 2048-nightly-ios-nosign.zip
 
           # --- macOS ---
           - platform: macos
             os: macos-latest
             command: flutter build macos --release
             artifact_path: build/macos/Build/Products/Release
-            output_name: app-release-macos.zip
+            output_name: 2048-nightly-macos-universal.zip
 
           # --- Windows ---
           - platform: windows
             os: windows-latest
             command: flutter build windows --release
             artifact_path: build/windows/x64/runner/Release
-            output_name: app-release-windows.zip
+            output_name: 2048-nightly-windows-x64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -87,7 +86,6 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-          # 自动根据 pubspec.lock 缓存依赖，大幅提升速度
           cache-key: 'flutter-:os:-:channel:-:filehash:pubspec.lock'
 
       # 3. 获取 Dart/Flutter 依赖
@@ -98,63 +96,90 @@ jobs:
       - name: Run Build Command
         run: ${{ matrix.command }}
 
-      # ----------------------------------------------------------------
-      # 新增步骤 A：打包/重命名构建产物
-      # 因为 Release 只能传文件，不能传文件夹，所以需要压缩
-      # ----------------------------------------------------------------
+      # 创建统一的暂存目录，防止把工作区其他无关文件打进去
+      - name: Create Staging Directory
+        run: mkdir -p release-staging
 
-      # 针对 Linux, Web, macOS, IOS (Bash 环境) 的打包逻辑
+      # 针对 Linux, Web, macOS, iOS (Bash 环境) 的打包逻辑
       - name: Package (Unix)
         if: runner.os != 'Windows' && matrix.platform != 'android'
         run: |
-          # 进入产物父目录
           cd "$(dirname "${{ matrix.artifact_path }}")"
-          # 获取产物文件夹名
           BASENAME="$(basename "${{ matrix.artifact_path }}")"
-          # 压缩
-          zip -r "${{ github.workspace }}/${{ matrix.output_name }}" "$BASENAME"
+          zip -r "${{ github.workspace }}/release-staging/${{ matrix.output_name }}" "$BASENAME"
 
-      # 针对 Android (本来就是文件，直接移动)
+      # 针对 Android
       - name: Package (Android)
         if: matrix.platform == 'android'
         run: |
-          mv "${{ matrix.artifact_path }}"/${{ matrix.output_name }} "${{ github.workspace }}/"
+          # 进入 apk 输出目录
+          cd "${{ matrix.artifact_path }}"
+          
+          # 直接把已知的 3 个文件分别重命名并移动到暂存区
+          # (加上 || true 是防止未来 Flutter 如果少打某一个包时不报错中断)
+          mv app-armeabi-v7a-release.apk "${{ github.workspace }}/release-staging/2048-nightly-android-armeabi-v7a.apk" || true
+          mv app-arm64-v8a-release.apk "${{ github.workspace }}/release-staging/2048-nightly-android-arm64-v8a.apk" || true
+          mv app-x86_64-release.apk "${{ github.workspace }}/release-staging/2048-nightly-android-x86_64.apk" || true
 
       # 针对 Windows (PowerShell 环境) 的打包逻辑
       - name: Package (Windows)
         if: runner.os == 'Windows'
         run: |
-          Compress-Archive -Path "${{ matrix.artifact_path }}\*" -DestinationPath "${{ github.workspace }}\${{ matrix.output_name }}"
+          Compress-Archive -Path "${{ matrix.artifact_path }}\*" -DestinationPath "${{ github.workspace }}\release-staging\${{ matrix.output_name }}"
 
-      # ----------------------------------------------------------------
-      # 新增步骤 B：上传到 Release
-      # ----------------------------------------------------------------
-      - name: Upload to Nightly Release
-        uses: ncipollo/release-action@v1
+      # --- 关键修改 1：不直接发布，而是作为 Workflow 构件上传 ---
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
         with:
-          # 指定上传刚刚打包好的文件
-          artifacts: "${{ matrix.output_name }}"
-          # 必须指定 tag 名称
-          tag: "nightly"
-          # 允许更新同一个 tag（实现覆盖效果）
-          allowUpdates: true
-          # 如果文件重名，则替换旧文件
-          replacesArtifacts: true
-          # 标记为预发布
-          # prerelease: true
-          # 将此 Release 标记为 Latest (可选，如果是 nightly 通常设为 false，这里设 true 会让它在首页显示)
-          makeLatest: true
-          # 如果 tag 不存在则创建，Body 和 Name 可以自定义
-          name: "Nightly Build"
-          body: "Latest automated build from the main branch."
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # 给所有平台使用同一个名字，v4 版本会自动将它们合并到同一个下载集合中
+          name: all-build-artifacts
+          path: release-staging/*
+          # 临时文件，只保留1天以节省空间
+          retention-days: 1
 
-      # 5. 上传 GitHub Pages 产物 (Web 平台保留此步用于部署 Pages 页面)
+      # 上传 GitHub Pages 产物 (Web 平台特供)
       - name: Upload GitHub Pages Artifact
         if: matrix.platform == 'web'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ matrix.artifact_path }}
+
+  # --- 关键修改 2：新增统一发布的 Job ---
+  publish-release:
+    name: Publish Nightly Release
+    # 核心：必须等待 build 里的所有平台任务（6个并发）全部成功，才会执行
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 下载 build 步骤中上传的所有平台的压缩包 / APK
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: all-build-artifacts
+          path: release-assets
+
+      # 强制删除旧的 nightly Release 和 Tag（解决时间戳不更新的问题）
+      - name: Delete old Nightly release and tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete nightly --cleanup-tag -y || true
+
+      # 重新创建全新的 Nightly Release，并把所有下载回来的产物附加上去
+      - name: Create Nightly Release
+        uses: ncipollo/release-action@v1
+        with:
+          # 上传 release-assets 目录下的所有文件
+          artifacts: "release-assets/*"
+          tag: "nightly"
+          name: "Nightly Build"
+          body: "Latest automated build from the main branch."
+          makeLatest: true
+          # 绑定当前提交的代码 SHA，防止 tag 丢失指向
+          commit: ${{ github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # 部署 Web 页面
   deploy-pages:
