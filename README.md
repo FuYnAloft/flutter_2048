@@ -1,16 +1,19 @@
 # flutter_2048
 
-A new Flutter project.
+一个用 Flutter 构建的 2048 小游戏，支持 Web、Android、Windows、macOS、Linux、iOS 多平台。
 
-## Getting Started
+## 体验
 
-This project is a starting point for a Flutter application.
+- 🌐 **网页版**：[fuynaloft.github.io/flutter_2048](https://fuynaloft.github.io/flutter_2048/)
+- 📦 **下载安装包**：[Nightly Release](https://github.com/FuYnAloft/flutter_2048/releases/tag/nightly)
+> 注意：所有版本均未签名或使用测试签名，安装时请允许安装未知来源的应用，ios版必须自签。
+## 本地运行
 
-A few resources to get you started if this is your first Flutter project:
+环境要求：Flutter SDK 3 Stable
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+git clone https://github.com/FuYnAloft/flutter_2048.git
+cd flutter_2048
+flutter pub get
+flutter run
+```
