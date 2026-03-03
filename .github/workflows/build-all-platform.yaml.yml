@@ -92,7 +92,7 @@ jobs:
 
       # 3. 获取 Dart/Flutter 依赖
       - name: Flutter Pub Get
-        run: flutter pub get
+        run: flutter pub get --no-example --enforce-lockfile
 
       # 4. 构建
       - name: Run Build Command
