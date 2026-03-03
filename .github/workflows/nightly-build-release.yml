@@ -131,10 +131,8 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          # 给所有平台使用同一个名字，v4 版本会自动将它们合并到同一个下载集合中
-          name: all-build-artifacts
+          name: artifact-${{ matrix.platform }}
           path: release-staging/*
-          # 临时文件，只保留1天以节省空间
           retention-days: 1
 
       # 上传 GitHub Pages 产物 (Web 平台特供)
@@ -157,8 +155,12 @@ jobs:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: all-build-artifacts
+          # 下载所有以 artifact- 开头的构件
+          pattern: artifact-*
+          # 把它们解压到同一个文件夹下
           path: release-assets
+          # 开启合并模式，否则 v4 会给每个平台建一个单独的子文件夹
+          merge-multiple: true
 
       # 强制删除旧的 nightly Release 和 Tag（解决时间戳不更新的问题）
       - name: Delete old Nightly release and tag
