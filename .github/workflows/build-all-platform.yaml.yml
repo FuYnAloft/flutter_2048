@@ -31,9 +31,9 @@ jobs:
           # --- Android ---
           - platform: android
             os: ubuntu-latest
-            command: flutter build apk --release
-            artifact_path: build/app/outputs/flutter-apk/app-release.apk
-            output_name: app-release-android.apk
+            command: flutter build apk --release --split-per-abi
+            artifact_path: build/app/outputs/flutter-apk
+            output_name: app*release.apk
 
           # --- Web ---
           - platform: web
@@ -114,11 +114,11 @@ jobs:
           # 压缩
           zip -r "${{ github.workspace }}/${{ matrix.output_name }}" "$BASENAME"
 
-      # 针对 Android (本来就是文件，直接重命名/复制出来)
+      # 针对 Android (本来就是文件，直接移动)
       - name: Package (Android)
         if: matrix.platform == 'android'
         run: |
-          mv "${{ matrix.artifact_path }}" "${{ github.workspace }}/${{ matrix.output_name }}"
+          mv "${{ matrix.artifact_path }}"/${{ matrix.output_name }} "${{ github.workspace }}/"
 
       # 针对 Windows (PowerShell 环境) 的打包逻辑
       - name: Package (Windows)
@@ -141,7 +141,7 @@ jobs:
           # 如果文件重名，则替换旧文件
           replacesArtifacts: true
           # 标记为预发布
-          prerelease: true
+          # prerelease: true
           # 将此 Release 标记为 Latest (可选，如果是 nightly 通常设为 false，这里设 true 会让它在首页显示)
           makeLatest: true
           # 如果 tag 不存在则创建，Body 和 Name 可以自定义
