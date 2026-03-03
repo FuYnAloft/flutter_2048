@@ -52,7 +52,7 @@ jobs:
           - platform: macos
             os: macos-latest
             command: flutter build macos --release
-            artifact_path: build/macos/Build/Products/Release
+            artifact_path: build/macos/Build/Products/Release/flutter_2048.app
             output_name: 2048-nightly-macos-universal.zip
 
           # --- Windows ---
